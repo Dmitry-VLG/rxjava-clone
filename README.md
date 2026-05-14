@@ -1,78 +1,115 @@
 # RxJava Clone
 
-Учебная реализация упрощенной RxJava-подобной библиотеки на Java.
+Учебная реализация упрощённой RxJava-подобной библиотеки на Java с поддержкой реактивной модели подписки, 
+операторов преобразования, асинхронного выполнения и управления потоками. 
+Реализация ориентирована на демонстрацию архитектурных принципов реактивных библиотек, 
+а не на полное повторение production-возможностей настоящей RxJava.
 
-## Что реализовано
+---
 
-- Observer
-- Observable
-- create()
-- map()
-- filter()
-- flatMap()
-- Disposable
-- Scheduler
-- IOThreadScheduler
-- ComputationScheduler
-- SingleThreadScheduler
-- subscribeOn()
-- observeOn()
-- обработка ошибок
-- unit-тесты
+## 1. Цель
 
-## Архитектура
+Цель — реализовать мини-библиотеку реактивных потоков со следующими возможностями:
 
-### Observable
-Базовый абстрактный класс, представляющий источник событий.
+- создание источника событий через `Observable.create(...)`;
+- подписка через `subscribe(...)`;
+- получение сигналов `onNext`, `onError`, `onComplete`;
+- преобразование потока через `map`, `filter`, `flatMap`;
+- управление потоками выполнения через `subscribeOn` и `observeOn`;
+- отмена подписки через `Disposable`;
+- обработка ошибок;
+- покрытие unit-тестами.
 
-### Observer
-Подписчик, который получает события:
-- onNext
-- onError
-- onComplete
+---
 
-### Disposable
-Интерфейс для отмены подписки.
+## 2. Реализация
 
-### Scheduler
-Абстракция выполнения задач в потоке или пуле потоков.
+### Базовые компоненты
+- `Observer<T>`
+- `Observable<T>`
+- `Observable.create(...)`
+- `Disposable`
+- `Emitter<T>`
 
 ### Операторы
-Операторы реализованы как отдельные классы-обертки над исходным Observable:
-- ObservableMap
-- ObservableFilter
-- ObservableFlatMap
-- ObservableSubscribeOn
-- ObservableObserveOn
+- `map(Function)`
+- `filter(Predicate)`
+- `flatMap(Function<T, Observable<R>>)`
 
-## Реализации Scheduler
+### Scheduler API
+- `Scheduler`
+- `IOThreadScheduler`
+- `ComputationScheduler`
+- `SingleThreadScheduler`
+- `Schedulers.io()`
+- `Schedulers.computation()`
+- `Schedulers.single()`
+- `Schedulers.shutdown()`
+- `Schedulers.reset()`
 
-### IOThreadScheduler
-Использует CachedThreadPool.
-Подходит для I/O-операций:
-- сетевые запросы
-- чтение/запись файлов
-- обращения к БД
+### Управление потоками
+- `subscribeOn(...)`
+- `observeOn(...)`
 
-### ComputationScheduler
-Использует FixedThreadPool размером по числу доступных ядер.
-Подходит для вычислительных задач.
+### Дополнительно
+- сериализация downstream-сигналов в конкурентных сценариях;
+- корректная обработка terminal-сигналов;
+- расширенное тестовое покрытие многопоточного поведения.
 
-### SingleThreadScheduler
-Использует один поток.
-Подходит для последовательной обработки событий.
+---
 
-## Тестирование
+## 3. Соответствие требованиям задания
 
-Покрыты тестами:
-- базовая подписка
-- map
-- filter
-- flatMap
-- обработка ошибок
-- Disposable
-- subscribeOn / observeOn
-- работа Scheduler в многопоточной среде
+| Требование | Реализация | Статус |
+|---|---|---|
+| `Observer` с `onNext/onError/onComplete` | `ru.rxclone.core.Observer` | Выполнено |
+| `Observable` с `subscribe(...)` | `ru.rxclone.core.Observable` | Выполнено |
+| `Observable.create(...)` | `Observable.create(...)` + `ObservableCreate` | Выполнено |
+| `map(...)` | `ObservableMap` | Выполнено |
+| `filter(...)` | `ObservableFilter` | Выполнено |
+| `Scheduler.execute(...)` | `ru.rxclone.core.Scheduler` | Выполнено |
+| `IOThreadScheduler` | `ru.rxclone.schedulers.IOThreadScheduler` | Выполнено |
+| `ComputationScheduler` | `ru.rxclone.schedulers.ComputationScheduler` | Выполнено |
+| `SingleThreadScheduler` | `ru.rxclone.schedulers.SingleThreadScheduler` | Выполнено |
+| `subscribeOn(...)` | `ObservableSubscribeOn` | Выполнено |
+| `observeOn(...)` | `ObservableObserveOn` | Выполнено |
+| `flatMap(...)` | `ObservableFlatMap` | Выполнено |
+| `Disposable` | `Disposable`, `BooleanDisposable`, `CompositeDisposable`, `CreateEmitter` | Выполнено |
+| Обработка ошибок через `onError` | `CreateEmitter`, операторы, сериализация terminal-сигналов | Выполнено |
+| Unit-тесты | `src/test/java/ru/rxclone` | Выполнено |
 
+---
 
+## 4. Архитектура 
 
+### Структура 
+
+```text
+ru.rxclone
+├── core
+│   ├── Disposable
+│   ├── Emitter
+│   ├── Observable
+│   ├── ObservableOnSubscribe
+│   ├── Observer
+│   └── Scheduler
+├── disposables
+│   ├── BooleanDisposable
+│   └── CompositeDisposable
+├── internal
+│   ├── CreateEmitter
+│   └── SerializedObserver
+├── observables
+│   ├── ObservableCreate
+│   ├── ObservableMap
+│   ├── ObservableFilter
+│   ├── ObservableFlatMap
+│   ├── ObservableSubscribeOn
+│   └── ObservableObserveOn
+├── schedulers
+│   ├── IOThreadScheduler
+│   ├── ComputationScheduler
+│   ├── SingleThreadScheduler
+│   └── Schedulers
+└── demo
+    └── DemoMain

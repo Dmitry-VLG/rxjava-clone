@@ -4,22 +4,35 @@ import ru.rxclone.core.Scheduler;
 
 public final class Schedulers {
 
-    private static final IOThreadScheduler IO = new IOThreadScheduler();
-    private static final ComputationScheduler COMPUTATION = new ComputationScheduler();
-    private static final SingleThreadScheduler SINGLE = new SingleThreadScheduler();
+    private static volatile IOThreadScheduler io = new IOThreadScheduler();
+    private static volatile ComputationScheduler computation = new ComputationScheduler();
+    private static volatile SingleThreadScheduler single = new SingleThreadScheduler();
 
     private Schedulers() {
     }
 
     public static Scheduler io() {
-        return IO;
+        return io;
     }
 
     public static Scheduler computation() {
-        return COMPUTATION;
+        return computation;
     }
 
     public static Scheduler single() {
-        return SINGLE;
+        return single;
+    }
+
+    public static synchronized void shutdown() {
+        io.shutdown();
+        computation.shutdown();
+        single.shutdown();
+    }
+
+    public static synchronized void reset() {
+        shutdown();
+        io = new IOThreadScheduler();
+        computation = new ComputationScheduler();
+        single = new SingleThreadScheduler();
     }
 }
