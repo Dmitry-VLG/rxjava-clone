@@ -89,7 +89,7 @@
 
 ### Структура
 
-```text ```
+```text 
 ru.rxclone
 ├── core
 │ ├── Disposable
@@ -118,7 +118,7 @@ ru.rxclone
 │ └── Schedulers
 └── demo
 └── DemoMain
-
+```
 ---
 
 ## 5. Архитектурная идея
@@ -129,7 +129,7 @@ ru.rxclone
 
 ### Пример:
 
-`
+```
 Observable.<Integer>create(...)
     .map(...)
     .filter(...)
@@ -137,7 +137,7 @@ Observable.<Integer>create(...)
     .subscribeOn(...)
     .observeOn(...)
     .subscribe(...);
-`
+```
 
 Выполнение начинается в момент вызова subscribe(...).
 
@@ -147,7 +147,7 @@ Observable.<Integer>create(...)
 
 ### Общая схема
 
-`
+```
 Source (Observable.create)
 |
 v
@@ -169,11 +169,11 @@ v
 Observer.onNext(...)
 Observer.onError(...)
 Observer.onComplete(...)
-`
+```
 
 ### Схема подписки
 
-`
+```
 subscribe(observer)
     ->
 subscribeActual(observer)
@@ -183,51 +183,47 @@ source/operator подписывает downstream observer
 source начинает эмитить сигналы
     ->
 downstream получает onNext/onError/onComplete
-`
+```
 
 ---
 
 ## 7. Описание ключевых компонентов
 
-`
-Observer<T>
-`
+`Observer<T> `
 
 ### Подписчик, который получает сигналы потока:
 
-`
+```
 onNext(T item) — новое значение;
 onError(Throwable t) — ошибка;
 onComplete() — успешное завершение потока.
 Observable<T>
-`
+```
 
 ### Базовый абстрактный класс библиотеки, который предоставляет:
 
-`
+```
 создание потока через create(...);
 подписку через subscribe(...);
 цепочку операторов.
 Emitter<T>
-`
+```
 
 ### Внутренний интерфейс, через который источник в Observable.create(...) отправляет сигналы downstream-подписчику.
 
-`
-Disposable
-`
+`Disposable`
 
 ### Интерфейс отмены подписки:
 
-`
+```
 dispose() — отменить подписку;
 isDisposed() — проверить статус.
 CompositeDisposable
-`
+```
 
 ### Служебный класс для управления несколькими Disposable одновременно. Особенно важен в flatMap, где один внешний поток
 
-# Может создать несколько внутренних подписок.
+### Может создать несколько внутренних подписок.
 
 `CreateEmitter<T>`
 
@@ -258,13 +254,14 @@ CompositeDisposable
 
 # Пример:
 
-`Observable.<Integer>create(emitter -> {
+```Observable.<Integer>create(emitter -> {
     emitter.onNext(1);
     emitter.onNext(2);
     emitter.onComplete();
-}).map(x -> x * 10);`
+}).map(x -> x * 10);
+```
 
-# Результат:
+### Результат:
 
 10
 20
@@ -273,16 +270,17 @@ CompositeDisposable
 
 Пропускает только элементы, удовлетворяющие условию.
 
-# Пример:
+### Пример:
 
-`Observable.<Integer>create(emitter -> {
+```Observable.<Integer>create(emitter -> {
     emitter.onNext(10);
     emitter.onNext(15);
     emitter.onNext(20);
     emitter.onComplete();
-}).filter(x -> x >= 15);`
+}).filter(x -> x >= 15);
+```
 
-# Результат:
+### Результат:
 
 15
 20
@@ -292,14 +290,14 @@ CompositeDisposable
 Для каждого элемента внешнего потока создаёт внутренний Observable, а затем объединяет все внутренние потоки в
 единый downstream-поток.
 
-# Особенности текущей реализации
+### Особенности текущей реализации
 
 - поддерживаются несколько внутренних подписок;
 - завершение происходит только после завершения внешнего потока и всех внутренних подписок;
 - первая ошибка завершает весь flatMap;
 - downstream-сигналы сериализуются через SerializedObserver, чтобы избежать конкурентных вызовов observer.onNext(...).
 
-# Почему это важно
+### Почему это важно
 
 Без сериализации два внутренних источника могли бы одновременно вызвать downstream observer. Это особенно опасно в
 многопоточной среде. В текущей реализации этот риск устранён.
@@ -310,25 +308,26 @@ CompositeDisposable
 
 Меняет поток, в котором выполняется подписка на upstream-source. То есть влияет на то, где запускается источник.
 
-# Пример:
+### Пример:
 
-`Observable.<Integer>create(emitter -> {
+```Observable.<Integer>create(emitter -> {
     System.out.println("source thread = " + Thread.currentThread().getName());
     emitter.onNext(1);
     emitter.onComplete();
-}).subscribeOn(Schedulers.io());`
+}).subscribeOn(Schedulers.io());
+```
 
 ### 9.2 `observeOn(...)`
 
 Меняет поток, в котором downstream observer получает сигналы. То есть влияет на то, где выполняются onNext, onError,
 onComplete у подписчика.
 
-# Важная гарантия реализации
+### Важная гарантия реализации
 
 observeOn реализован не наивно через схему «одна задача executor-а на один сигнал», а через очередь сигналов,
 wip-счётчик и single-consumer drain loop.
 
-# Это даёт следующие гарантии:
+### Это даёт следующие гарантии:
 
 - сохраняется порядок onNext;
 - onComplete и onError не обгоняют onNext;
@@ -362,7 +361,7 @@ I/O;
 - `shutdown()` — завершает текущие singleton scheduler-ы;
 - `reset()` — пересоздаёт их заново.
 
-# Это полезно для:
+### Это полезно для:
 
 - тестовой изоляции;
 - повторных прогонов тестов;
@@ -372,7 +371,7 @@ I/O;
 
 ### 11.1 `Terminal-сигналы`
 
-# В библиотеке соблюдается базовое правило реактивного контракта:
+### В библиотеке соблюдается базовое правило реактивного контракта:
 
 - после onError() больше нельзя отправлять onNext() или onComplete();
 - после onComplete() больше нельзя отправлять onNext() или onError().
@@ -382,7 +381,7 @@ I/O;
 
 Каждый поток должен завершиться только одним terminal-сигналом.
 
-# Это обеспечивается:
+### Это обеспечивается:
 
 - флагами terminated;
 - защитой в CreateEmitter;
@@ -418,7 +417,7 @@ observer-а, используется SerializedObserver.
 
 ## 12. Обработка ошибок
 
-# Ошибки могут возникнуть:
+### Ошибки могут возникнуть:
 
 - в source (Observable.create(...));
 - в map(...);
@@ -428,7 +427,7 @@ observer-а, используется SerializedObserver.
 
 Во всех основных сценариях они переводятся в onError(...).
 
-# Семантика
+### Семантика
 
 - первая ошибка завершает поток;
 - после ошибки terminal-состояние считается достигнутым;
@@ -436,7 +435,7 @@ observer-а, используется SerializedObserver.
 
 ## 13.
 
-# Сценарий 1. Базовый pipeline
+### Сценарий 1. Базовый pipeline
 
 ```
 Observable.<Integer>create(emitter -> {
@@ -465,7 +464,7 @@ System.out.println(item);
 });
 ```
 
-# Сценарий 2. Переключение потоков
+### Сценарий 2. Переключение потоков
 
 ```
 Observable.<Integer>create(emitter -> {
@@ -493,7 +492,7 @@ Observable.<Integer>create(emitter -> {
 });
 ```
 
-# Сценарий 3. flatMap с несколькими inner-источниками
+### Сценарий 3. flatMap с несколькими inner-источниками
 
 ```
 Observable.<Integer>create(emitter -> {
@@ -524,7 +523,7 @@ Observable.<Integer>create(emitter -> {
 });
 ```
 
-# Сценарий 4. Ошибка в map
+### Сценарий 4. Ошибка в map
 
 ```
 Observable.<Integer>create(emitter -> {
@@ -555,7 +554,7 @@ Observable.<Integer>create(emitter -> {
 
 В проекте есть unit-тесты для:
 
-# Базовых сценариев
+### Базовых сценариев
 
 создание потока и подписка;
 map;
@@ -565,7 +564,7 @@ flatMap;
 Disposable;
 scheduler-ы.
 
-# Многопоточных сценариев
+### Многопоточных сценариев
 
 конкурентные inner-emissions в flatMap;
 сериализация downstream-вызовов;
@@ -574,30 +573,30 @@ scheduler-ы.
 завершение flatMap по первой ошибке;
 lifecycle singleton scheduler-ов.
 
-# Актуальный локальный прогон
+### Актуальный локальный прогон
 
 Проект локально успешно проходит:
-`mvn clean test
-mvn clean package`
+`mvn clean test`
+`mvn clean package`
 Количество тестов в актуальной версии: 18.
 
 Это подтверждает не только наличие тестов, но и их успешный прогон в рабочем окружении.
 
 ## 15. Команды сборки и запуска
 
-# Компиляция
+### Компиляция
 
 `mvn clean compile`
 
-# Запуск тестов
+### Запуск тестов
 
 `mvn clean test`
 
-# Сборка jar
+### Сборка jar
 
 `mvn clean package`
 
-# Запуск demo
+### Запуск demo
 
 `java -cp target/classes ru.rxclone.demo.DemoMain`
 
